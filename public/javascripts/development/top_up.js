@@ -1095,9 +1095,102 @@ TopUp = (function() {
   } else {
     var src = scriptElement.getAttribute("src").replace(/(development\/)?top_up(\-min)?\.js.*$/, "jquery/" + missing_libs.join(".") + ".js");
     document.write('<script src="' + src + '" type="text/javascript" ' + 
-                           'onload="TopUp.init()" onreadystatechange="TopUp.init()">' +
+                           'onload="initTopUp2();TopUp.init();" onreadystatechange="initTopUp2();TopUp.init();">' +
                    '</script>');
   }
 }());
+
+}
+
+
+function initTopUp2() {
+  
+  jQuery(document).ready(function() {
+    jQuery('#images a').topUp({group:'FirstGroup'});
+    jQuery('#ex2 a').topUp({group:'AnotherGroup'});
+    jQuery('#ex3 a').topUp({group:'AnotherGroup'});
+  });
+  
+  
+
+  (function($) {
+	
+  	// group and element storage
+  	var groups = {};
+	
+  	// default options
+  	var defaults = {
+  		group: null
+  	};
+	
+  	$.fn.topUp = function(action, options) {
+  	  var el;
+		
+  		if (typeof(action) == 'object') {
+      	options = action;
+      	action = 'Initialize';
+      }
+		
+		
+  		this.each(function() {
+  			el = $(this);
+  			setOptions(el);
+			
+  			switch(action) {
+  			case 'Initialize':
+  				initialize();
+  				break;
+  			case 'TellMeMyGroup':
+  				tellMeMyGroup();
+  				break;
+  			default:
+  				alert('Unknown Action "'+action+'"');
+  			}
+			
+  		});
+		
+  		function setOptions() {
+  			options = $.extend({}, defaults, el.data('my_plugin:options'), options);
+  			el.data('my_plugin:options', options);
+  		};
+		
+		
+  		/**
+  		 * initialize
+  		 */
+		
+  		function initialize() {
+  		  
+  		  if (options.group) {
+		      
+  		    // add element to group storage
+  		    if (typeof(groups[options.group]) == 'undefined') {
+  		      groups[options.group] = [];
+  		    }
+  		    groups[options.group].push(el);
+		    
+  		    // bind click event
+  			  el.click(function() {
+  				  el.topUp('TellMeMyGroup');
+  			  });
+			  
+  		  }
+  		}
+		
+		
+  		/**
+  		 * tell group
+  		 */
+		
+  		function tellMeMyGroup() {
+  			alert('I\'m in group "'+options.group+'", group size is '+groups[options.group].length);
+  		}
+		
+		
+  		return this;
+  	};
+	
+  })(jQuery);
+
 
 }
