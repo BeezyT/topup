@@ -1,0 +1,76 @@
+!SESSION 2009-11-16 15:24:45.588 -----------------------------------------------
+eclipse.buildId=unknown
+java.version=1.6.0_15
+java.vendor=Apple Inc.
+BootLoader constants: OS=macosx, ARCH=x86, WS=cocoa, NL=en_US
+Framework arguments:  -application com.aptana.ide.desktop.integration.Application -keyring /Users/timo/.eclipse_keyring -showlocation
+Command-line arguments:  -os macosx -ws cocoa -arch x86 -application com.aptana.ide.desktop.integration.Application -keyring /Users/timo/.eclipse_keyring -showlocation
+
+!ENTRY org.eclipse.ui.workbench 2 0 2009-11-16 15:24:52.428
+!MESSAGE A handler conflict occurred.  This may disable some commands.
+!SUBENTRY 1 org.eclipse.ui.workbench 2 0 2009-11-16 15:24:52.428
+!MESSAGE Conflict for 'com.aptana.ide.editors.views.actions.actionKeyCommand':
+HandlerActivation(commandId=com.aptana.ide.editors.views.actions.actionKeyCommand,
+	handler=com.aptana.ide.editors.views.actions.ActionKeyCommandHandler,
+	expression=,sourcePriority=0)
+HandlerActivation(commandId=com.aptana.ide.editors.views.actions.actionKeyCommand,
+	handler=com.aptana.ide.editors.views.actions.ActionKeyCommandHandler,
+	expression=,sourcePriority=0)
+
+!ENTRY org.eclipse.ui 4 4 2009-11-16 15:24:56.659
+!MESSAGE Unable to find view with id: com.aptana.ide.samples.SamplesView, when creating perspective com.aptana.ide.js.ui.WebPerspective
+
+!ENTRY org.eclipse.ui 4 4 2009-11-16 15:24:56.668
+!MESSAGE Unable to find view with id: com.aptana.ide.framework.jaxer.interactiveConsole, when creating perspective com.aptana.ide.js.ui.WebPerspective
+
+!ENTRY org.eclipse.ui 4 4 2009-11-16 15:24:56.669
+!MESSAGE Unable to find view with id: com.aptana.ide.framework.jaxer.monitor, when creating perspective com.aptana.ide.js.ui.WebPerspective
+
+!ENTRY org.eclipse.ui 4 4 2009-11-16 15:24:56.701
+!MESSAGE Unable to find Action Set: com.aptana.ide.server.ui.launchActionSet
+
+!ENTRY org.eclipse.core.net 1 0 2009-11-16 15:25:16.234
+!MESSAGE System property http.nonProxyHosts has been set to local|*.local|169.254/16|*.169.254/16 by an external source. This value will be overwritten using the values from the preferences
+
+!ENTRY com.aptana.ide.intro 4 0 2009-11-16 15:25:18.046
+!MESSAGE (Build 1.5.0.25737) [ERROR] Unable to disable feature
+!STACK 0
+java.lang.Exception: There are no configured features with id com.aptana.ide.feature.professional
+	at org.eclipse.update.standalone.DisableCommand.<init>(DisableCommand.java:76)
+	at com.aptana.ide.intro.licensing.TrialKeyStartup.disableFeature(TrialKeyStartup.java:195)
+	at com.aptana.ide.intro.licensing.TrialKeyStartup.disableProfessional(TrialKeyStartup.java:176)
+	at com.aptana.ide.intro.licensing.TrialKeyStartup.disableProfessionalWithDialog(TrialKeyStartup.java:142)
+	at com.aptana.ide.intro.licensing.TrialKeyStartup.startup(TrialKeyStartup.java:96)
+	at com.aptana.ide.core.ui.BaseTimingStartup.earlyStartup(BaseTimingStartup.java:58)
+	at org.eclipse.ui.internal.EarlyStartupRunnable.runEarlyStartup(EarlyStartupRunnable.java:87)
+	at org.eclipse.ui.internal.EarlyStartupRunnable.run(EarlyStartupRunnable.java:66)
+	at org.eclipse.core.runtime.SafeRunner.run(SafeRunner.java:42)
+	at org.eclipse.ui.internal.Workbench$55.run(Workbench.java:2192)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:55)
+
+!ENTRY org.eclipse.ui.workbench 4 2 2009-11-16 15:25:18.052
+!MESSAGE Problems occurred when invoking code from plug-in: "org.eclipse.ui.workbench".
+!STACK 0
+java.lang.IllegalStateException: Aptana Studio Professional is not licensed. Key is expired.
+	at com.aptana.ide.intro.licensing.TrialKeyStartup.startup(TrialKeyStartup.java:99)
+	at com.aptana.ide.core.ui.BaseTimingStartup.earlyStartup(BaseTimingStartup.java:58)
+	at org.eclipse.ui.internal.EarlyStartupRunnable.runEarlyStartup(EarlyStartupRunnable.java:87)
+	at org.eclipse.ui.internal.EarlyStartupRunnable.run(EarlyStartupRunnable.java:66)
+	at org.eclipse.core.runtime.SafeRunner.run(SafeRunner.java:42)
+	at org.eclipse.ui.internal.Workbench$55.run(Workbench.java:2192)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:55)
+
+!ENTRY org.eclipse.ui 4 4 2009-11-16 15:25:18.055
+!MESSAGE Unhandled Exception
+
+!ENTRY com.aptana.ide.intro 4 0 2009-11-16 15:25:18.056
+!MESSAGE Unable to execute early startup code for an extension
+!STACK 0
+java.lang.IllegalStateException: Aptana Studio Professional is not licensed. Key is expired.
+	at com.aptana.ide.intro.licensing.TrialKeyStartup.startup(TrialKeyStartup.java:99)
+	at com.aptana.ide.core.ui.BaseTimingStartup.earlyStartup(BaseTimingStartup.java:58)
+	at org.eclipse.ui.internal.EarlyStartupRunnable.runEarlyStartup(EarlyStartupRunnable.java:87)
+	at org.eclipse.ui.internal.EarlyStartupRunnable.run(EarlyStartupRunnable.java:66)
+	at org.eclipse.core.runtime.SafeRunner.run(SafeRunner.java:42)
+	at org.eclipse.ui.internal.Workbench$55.run(Workbench.java:2192)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:55)
