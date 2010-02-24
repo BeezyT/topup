@@ -1,5 +1,52 @@
 = TopUp CHANGELOG
 
+== Version 1.6.9 (February 2, 2010)
+
+* Introduced the toption 'storeCurrent' and TopUp.restore(). This enables you to 'store' the currently displayed content when rendering new content. As the function name describes: calling TopUp.restore() restores the stored content. Please note that this function still needs to be tweaked a bit. Storing multiple isn't possible at the moment (to be continued).
+
+== Version 1.6.8 (January 25, 2010)
+
+* Fixed bug when calling TopUp.display() with type: 'html'
+
+== Version 1.6.7 (January 15, 2010)
+
+* Minor tweak within the TopUp.replace() function, not losing input focus anymore after updating the TopUp content
+
+== Version 1.6.6 (January 12, 2010)
+
+* Enabled viewing Flash content fullscreen (requested by jqueryO)
+
+== Version 1.6.5 (January 8, 2010)
+
+* Minor fix: not showing the scrollbar when calling TopUp.update() anymore
+
+== Version 1.6.4 (December 23, 2009)
+
+* Adjusted TopUp.update() a bit which enables you to manipulate the currently displayed TopUp content. For an example, click on the inline DOM example at http://gettopup.com/#some_examples
+* Using live() instead of bind() from now which makes TopUp.rebind() obsolete (reminded by Christoffer)
+
+== Version 1.6.3.1 (December 21, 2009)
+
+* Fixed handling the ondisplay and onclose callbacks when specified as toptions(!) (reported by TikkTakk-Aicon). Specify this as follows: ' toptions="ondisplay = alert(\"Hello world!\");" '
+* Being able to determine the type automatically (thanks to Clement Joubert) even when the reference contains a timestamp (e.g. example.jpg?1256518937)
+
+== Version 1.6.3 (December 21, 2009)
+
+* Automatically calling TopUp.display (or TopUp.displayTopUp) with jQuery(document).ready() when necessary. In other words: you can call TopUp.display() whenever you want and TopUp will be displayed a.s.a.p. and thus also on page load (yay!)
+* Added the 'flatlook' layout
+* Added examples for inline DOM elements
+* Added text shadow CSS to the title element in the 'dashboard' layout
+* Added TopUp.version so you can call it's version
+* Not showing scrollbars anymore when using the 'transform' effect for iframes, HTML and DOM elements
+* Fixed TopUp resizing when displaying HTML or inline DOM elements within Topup
+* Corrected the TopUp implementation for rendering inline DOM elements
+* Cleaned up the effect determination a bit, this concerns the default and 'transform' effect
+* FYI: TopUp releases are packed in .zip files from now on (yay!)
+
+== Version 1.6.2.2 (December 15, 2009)
+
+* Renamed the draggable() function to draggableZ() to prevent the jQuery UI draggable() function from being overriden
+
 == Version 1.6.2.1 (November 15, 2009)
 
 * Added {current} and {total} for using them as the current index and current group size in the TopUp window title respectively

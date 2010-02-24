@@ -12,9 +12,9 @@ namespace :top_up do
     ActionController::Base.append_view_path File.join(RAILS_ROOT, "app", "views")
     
     timestamp = Time.now
-    variables = [{:name => "css"   , :files => %w(style dashboard/style quicklook/style)},
+    variables = [{:name => "css"   , :files => %w(style dashboard/style quicklook/style flatlook/style)},
                  {:name => "ie7fix", :files => %w(dashboard/ie7fix)},
-                 {:name => "ie6fix", :files => %w(dashboard/ie6fix quicklook/ie6fix)},
+                 {:name => "ie6fix", :files => %w(dashboard/ie6fix quicklook/ie6fix flatlook/ie6fix)},
                  {:name => "iefix" , :files => %w(iefix)}].collect{ |variable|
       
       value = variable[:files].collect{ |file|
@@ -38,6 +38,7 @@ namespace :top_up do
     
     # Create files
     File.open("public/javascripts/top_up-pt.js"         , "w").puts(parse_library("top_up-pt", variables, args[:version], timestamp, true))
+    File.open("public/javascripts/top_up.js"            , "w").puts(parse_library("top_up"   , variables, args[:version], timestamp))
     File.open("assets/examples/javascripts/top_up.js"   , "w").puts(parse_library("top_up"   , variables, args[:version], timestamp))
     File.open("assets/examples/javascripts/top_up-pt.js", "w").puts(parse_library("top_up-pt", variables, args[:version], timestamp, true))
     FileUtils.cp_r("assets/examples/.", release_dir)
@@ -64,18 +65,16 @@ namespace :top_up do
       variables.each_with_index{|variable, i| index = i if line.match variable[:regexp]}
       
       if index.nil?
-        line.match("// *") ?
-          line.gsub(/\{(version|year|date)\}/) do |matched|
-            case matched
-            when "{version}"
-              version
-            when "{year}"
-              timestamp.year.to_s
-            when "{date}"
-              timestamp.strftime("%Y-%m-%d %H:%M:%S +0100 (%a, %d %B %Y)")
-            end
-          end : 
-          line
+        line.gsub(/\{(version|year|date)\}/) do |matched|
+          case matched
+          when "{version}"
+            version
+          when "{year}"
+            timestamp.year.to_s
+          when "{date}"
+            timestamp.strftime("%Y-%m-%d %H:%M:%S +0100 (%a, %d %B %Y)")
+          end
+        end
       else
         variable   = variables[index]
         wrap_style = variable[:name] != "html" && !prototype
@@ -97,21 +96,30 @@ namespace :top_up do
     # Define variable
     releases_dir    = "#{RAILS_ROOT}/assets/releases"
     packed_dir      = "#{releases_dir}/packed"
-    packed_symlink  = "#{packed_dir}/latest.tar.gz"
+    packed_symlink  = "#{packed_dir}/latest.zip"
+    temp_dir        = "#{RAILS_ROOT}/tmp/release"
     
-    # Create directory
+    # Create directories
     FileUtils.mkdir_p(packed_dir)
+    FileUtils.rm_r(temp_dir) if File.exists?(temp_dir)
+    FileUtils.mkdir_p(temp_dir)
     
     # Create symbolic links
-    File.delete(packed_symlink) if File.exists?(packed_symlink)
-    File.symlink("#{args[:version]}.tar.gz", packed_symlink)
+    File.delete(packed_symlink)
+    File.symlink("#{args[:version]}.zip", packed_symlink)
     
     # Delete .DS_Store files
     Dir.glob("#{releases_dir}/#{args[:version]}/**/.DS_Store") do |file|
       File.delete(file)
     end
     
+    # Copy the release to the temp directory
+    FileUtils.cp_r "#{releases_dir}/#{args[:version]}", temp_dir
+    %w(jquery top_up-min.js top_up.js top_up-pt.js).each do |path|
+      File.delete "#{temp_dir}/#{args[:version]}/#{path}"
+    end
+    
     # Pack release using tar
-    system "cd #{releases_dir} && tar -cvzf packed/#{args[:version]}.tar.gz #{args[:version]}"
+    system "cd #{temp_dir} && zip -r #{packed_dir}/#{args[:version]}.zip #{args[:version]}"
   end
 end

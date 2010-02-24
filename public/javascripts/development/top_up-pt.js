@@ -17,7 +17,7 @@ var scriptHost = (function deriveScriptHost() {
 
 // *
 // * TopUp {version} (Uncompressed) - Alpha release
-// * The #1 Javascript Pop Up (http://gettopup.com)
+// * The #1 Javascript Pop Up / Lightbox (http://gettopup.com)
 // *
 // * This library requires Prototype (http://prototypejs.org)
 // *
@@ -267,8 +267,8 @@ TopUp = (function() {
     var coptions = top_up.classNames().select(function(x) { return x.match(/^tu_/) });
     coptions.each(function(c) {
       c.sub(/^tu_/, "").split("_").each(function(coption) {
-        if ($w("db ql").include(coption)) {
-          var layoutRefs = {db: "dashboard", ql: "quicklook"};
+        if ($w("db ql fl").include(coption)) {
+          var layoutRefs = {db: "dashboard", ql: "quicklook", fl: "flatlook"};
           toptions.set("layout", layoutRefs[coption]);
         }
         if ($w("image html dom iframe ajax script").include(coption)) {
@@ -417,12 +417,15 @@ TopUp = (function() {
                                         codebase: "http://fpdownload.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=8,0,0,0",
                                         style   : "display: none"});
                                         
-    object.appendChild(new Element("param", {name: "src", value: options.get("reference")}));
-    object.appendChild(new Element("embed", {src        : options.get("reference"), 
-                                             width      : options.get("width"), 
-                                             height     : options.get("height"),
-                                             type       : "application/x-shockwave-flash",
-                                             pluginspage: "http://get.adobe.com/flashplayer/"}));
+    object.appendChild(new Element("param", {name: "src"            , value: options.get("reference")}));
+    object.appendChild(new Element("param", {name: "allowfullscreen", value: "true"}));
+    
+    object.appendChild(new Element("embed", {src            : options.get("reference"), 
+                                             width          : options.get("width"), 
+                                             height         : options.get("height"),
+                                             allowfullscreen: "true",
+                                             type           : "application/x-shockwave-flash",
+                                             pluginspage    : "http://get.adobe.com/flashplayer/"}));
     
     options.set("content", new Element("div", {width: options.get("width"), height: options.get("height")}));
     options.get("content").appendChild(object);
@@ -434,15 +437,19 @@ TopUp = (function() {
                                         classid : "clsid:D27CDB6E-AE6D-11CF-96B8-444553540000",
                                         codebase: "http://fpdownload.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=8,0,0,0",
                                         style   : "display: none"});
+    var src = TopUp.host + TopUp.players_path + "flvplayer.swf";
                                         
-    object.appendChild(new Element("param", {name: "movie"    , value: TopUp.host + "/players/flvplayer.swf"}));
-    object.appendChild(new Element("param", {name: "flashvars", value: "file=" + options.get("reference") + "&autostart=true"}));
-    object.appendChild(new Element("embed", {src        : TopUp.host + "/players/flvplayer.swf", 
-                                             width      : options.get("width"), 
-                                             height     : options.get("height"),
-                                             flashvars  : "file=" + options.get("reference") + "&autostart=true",
-                                             type       : "application/x-shockwave-flash",
-                                             pluginspage: "http://get.adobe.com/flashplayer/"}));
+    object.appendChild(new Element("param", {name: "movie"          , value: src}));
+    object.appendChild(new Element("param", {name: "flashvars"      , value: "file=" + options.get("reference") + "&autostart=true"}));
+    object.appendChild(new Element("param", {name: "allowfullscreen", value: "true"}));
+    
+    object.appendChild(new Element("embed", {src            : src, 
+                                             width          : options.get("width"), 
+                                             height         : options.get("height"),
+                                             flashvars      : "file=" + options.get("reference") + "&autostart=true",
+                                             allowfullscreen: "true",
+                                             type           : "application/x-shockwave-flash",
+                                             pluginspage    : "http://get.adobe.com/flashplayer/"}));
     
     options.set("content", new Element("div", {width: options.get("width"), height: options.get("height")}));
     options.get("content").appendChild(object);
@@ -869,8 +876,10 @@ TopUp = (function() {
 	};
   
 	return {
+	  version: "{version}",
 		host: scriptHost,
 		images_path: "images/top_up/",
+		players_path: "players/",
 		init: function() {
 			if (initialized) {
 				return false;

@@ -17,7 +17,7 @@ var scriptHost = (function deriveScriptHost() {
 
 // *
 // * TopUp {version} (Uncompressed)
-// * The #1 Javascript Pop Up (http://gettopup.com)
+// * The #1 Javascript Pop Up / Lightbox (http://gettopup.com)
 // *
 // * This library requires jQuery (http://jquery.com)
 // *
@@ -29,63 +29,12 @@ var scriptHost = (function deriveScriptHost() {
 // *
 
 TopUp = (function() {
-	var selector = null, index = null, data = null;
-	
-	/**
-	 * callback function for when topup is loaded
-	 * @access  private
-	 */
-	var on_ready = [];
-	
-	/**
-	 * is topup currently opening?
-	 * @access  private
-	 */
-	var displaying = false;
-	
-	/**
-	 * has topup been initialized before?
-	 * @access  private
-	 */
-	var initialized = false;
-	
-	/**
-	 * object storing groups
-	 * index: groupName, value: group data
-	 * @access  private
-	 */
-	var groups = {};
-	
-	/**
-	 * items of current group
-	 * is loaded from groups every time a new topup is opened
-	 * @access  private
-	 */
-	var group = []
-	
-	/**
-	 * current toptions
-	 * is loaded from dom every time a new element is displayed
-	 * @access  private
-	 */
-	var options = {};
-	
-	/**
-	 * default toption preset
-	 * @access  private
-	 */
+	var initialized = false, selector = null, on_ready = [], displaying = false, options = null, group = null, index = null, data = null;
 	var default_preset = {
 		layout: "dashboard",
-		effect: "transform",
+    effect: "transform",
 		resizable: 1
-	};
-	
-	/**
-	 * presets added by the user
-	 * @access  private
-	 */
-	var presets = {};
-	
+	}, presets = {};
 	
 	var extendjQuery = function() {
 		jQuery.extend({
@@ -112,6 +61,20 @@ TopUp = (function() {
 					jQuery(this).attr("id", id);
 				}
 				return jQuery(this).attr("id");
+			},
+			markerId: function() {
+			  return "_" + this.id() + "_marker";
+			},
+			bubbleDetect: function(selector, separator) {
+				var detected = null;
+				var element = this;
+				jQuery.each(selector.split(separator || ","), function(i, e) {
+					var selector = jQuery.trim(e);
+					if (jQuery(selector).index(element) != -1) {
+						detected = {element: jQuery(element), selector: selector};
+					}
+				});
+				return detected || (element.parent()[0] ? jQuery(element.parent()[0]).bubbleDetect(selector, separator) : null);
 			},
 			center: function() {
 			  var css = {top: parseInt((jQuery(window).height() - this.outerHeight()) / 2, 10) + jQuery(window).scrollTop(),
@@ -188,7 +151,7 @@ TopUp = (function() {
 
 				return this;
 			},
-			draggable: function(opts) {
+			draggableZ: function(opts) {
 			  var element = this;
 			  
         this.mousedown(function(event) {
@@ -214,176 +177,66 @@ TopUp = (function() {
       }
 		});
 	};
+	var injectCode = function() {
+		var images_url = TopUp.host + TopUp.images_path;
+		
+		var css = '<div></div>';
+		var ie7fix = '<div></div>';
+		var ie6fix = '<div></div>';
+		var iefix = '<div></div>';
+		var html = '<div></div>';
+
+		if (!jQuery("head").length) {
+		  jQuery(document.body).before("<head></head>");
+		}
+		jQuery(css).prependTo("head");
+		
+		if (jQuery.ie7) {
+			jQuery(ie7fix).insertAfter("head > style:first");
+		}
+		if (jQuery.ie6) {
+			jQuery(ie6fix).insertAfter("head > style:first");
+		}
+		if (jQuery.ie) {
+			jQuery(iefix).insertAfter("head > style:first");
+		}
 	
-	
-	/**
-	 * derive groups from dom and presets
-	 * @access  private
-	 */
-	 
-	var deriveGroups = function() {
-	  // reset storage (needed if method is called multiple times)
-	  groups = {};
-	  
-	  // presets
-	  jQuery.each(presets, function(presetSelector, presetToptions) {
-	    jQuery(presetSelector).each(function() {
-	      var toptions = presetToptions;
-	      var el = jQuery(this);
-	      if (typeof(el.attr("toptions")) != "undefined") {
-	        toptions = jQuery.extend(toptions, parseToptions(el.attr("toptions")))
-	      }
-	      addElement(el, toptions);
-	    });
-	  });
-	  
-	  // links with toptions
-	  jQuery("a[toptions]").each(function() {
-	    var el = jQuery(this);
-	    if (typeof(el.data("TopUp.toptions")) == "undefined") {
-			  addElement(el, parseToptions(el.attr("toptions")));
-			}
-	  });
-	  
-	  // links with tu_* class
-	  // TODO: limit this selector to a tags only
-	  var coptions = [];
-		jQuery.each(["db", "ql", "image", "html", "dom", "iframe", "ajax", "script"], function(i, coption) {
-      coptions.push("[class*=_" + coption + "]");
-    });
-    jQuery("[class^=tu_]:" + coptions.join(",")).each(function() {
-      var el = jQuery(this);
-      var typeValue = el.attr("class").substr(3);
-      if (typeof(el.data("TopUp.toptions")) == "undefined") {
-        addElement(el, {type: typeValue});
-      } else {
-        // update type toption only
-        var elData = el.data("TopUp.toptions");
-        elData["type"] = typeValue;
-        el.data("TopUp.toptions", elData);
-      }
-    });
-	  
-	  // links with top_up class
-	  jQuery("a.top_up").each(function() {
-	    var el = jQuery(this);
-	    if (typeof(el.data("TopUp.toptions")) == "undefined") {
-	      addElement(el, {});
-	    }
-	  });
+	  jQuery(html).appendTo("body");
 	};
-	
-	
-	/**
-	 * parse toptions
-	 * @param string  toptions
-	 * @return  object  toptions
-	 * @access  private
-	 */
-	 
-	var parseToptions = function(toptionsString) {
-    var toptions = {};
-    jQuery.each(toptionsString.split(","), function(i, option) {
-			var key_value = option.split("=");
-			toptions[jQuery.trim(key_value[0])] = jQuery.trim(key_value[1]);
-		});
-		return toptions;
+	var bind = function() {
+		var coptions = ["[class^=tu_][class*=x]"];
+		jQuery.each(["db", "ql", "fl", "image", "html", "dom", "iframe", "ajax", "script"], function(i, coption) {
+      coptions.push("[class^=tu_][class*=_" + coption + "]");
+    });
+    
+		selector = jQuery.merge([".top_up", "[toptions]", coptions.join(",")], jQuery.keys(presets)).join();
+		
+		jQuery(selector).live("click", topUpClick);
+		jQuery(document).bind("keypress", documentKeyPress);
 	};
-	
-	
-	/**
-	 * add a single element to the element and group storage
-	 * this method also binds the click event
-	 * @param jquery  element
-	 * @param object  toptions
-	 * @access  private
-	 */
-	
-	var addElement = function(element, toptions) {
-	  groupName = toptions.group;
-	  if (!groupName) {
-	    // no group
-	    toptions.index = 0;
-	    toptions.group = null;
-	  } else {
-	    // create group?
-	    if (typeof(groups[groupName]) == "undefined") {
-	      groups[groupName] = [];
-	    }
-	    // element index in group
-	    toptions.index = groups[groupName].length;
-	    // add element to group
-	    groups[groupName].push(element);
-	  }
-	  
-	  // reference and type
-	  toptions.reference = element.attr("href");
-	  if (!toptions["type"]) {
-	    toptions["type"] = deriveType(toptions.reference);
-	  }
-	  
-	  // manipulate title?
-	  var altText = "";
-		if ((toptions.readAltText != null && parseInt(toptions.readAltText, 10) == 1) || (toptions.title && toptions.title.match("{alt}"))) {
-		  var image = element.find("img");
-      if (image.length) {
-        altText = image.attr("alt") || "";
-      }
-      if (altText != "" && !(toptions.title && toptions.title.match("{alt}"))) {
-        toptions.title = "{alt}";
-      }
+  var fadeDuration = function(duration) {
+    return jQuery.ie7 ? 1 : duration;
+  };
+
+	var topUpClick = function(event) {
+		TopUp.displayTopUp(jQuery(event.target));
+		return false;
+	};
+	var documentKeyPress = function(event) {
+    if (jQuery("#top_up").is(":hidden") || jQuery(event.target).is(":input")) {
+		  return;
+		}
+		
+		switch(event.keyCode) {
+      case 27:
+		    TopUp.close(); break;
+		  case 37:
+        TopUp.previous(); break;
+		  case 39:
+        TopUp.next(); break;
     }
-    // TODO: do this after goups have been fully derived
-    toptions.title = (toptions.title || "")
-      .replace("{alt}", altText)
-      .replace("{current}", !groupName ? "" : (toptions.index + 1))
-      .replace("{total}", !groupName ? "" : groups[groupName].length);
-	  
-	  // store toptions with dom element
-	  toptions["element"] = element;
-	  element.data("TopUp.toptions", jQuery.extend({
-	    // TODO: use private attribute default_preset, somehow the attribute got overridden...
-  		layout: "dashboard",
-  		effect: "transform",
-  		resizable: 1
-  	}, toptions));
-  	
-  	// bind click event
-  	if (typeof(element.data("TopUp.click") == "undefined")) {
-  	  element.data("TopUp.click", true);
-  	  element.click(topUpClick);
-  	}
 	};
 	
-	
-	/**
-	 * derive type of content from the reference
-	 */
-	
-	var deriveType = function(reference) {
-	  if (reference.toLowerCase().match(/\.(gif|jpg|jpeg|png)$/)) {
-	    return "image";
-	  }
-	  if (reference.toLowerCase().match(/\.(swf)$/)) {
-	    return "flash";
-	  }
-	  if (reference.toLowerCase().match(/\.(flv)$/)) {
-	    return "flashvideo";
-	  }
-	  if (reference.toLowerCase().match(/\.(aif|aiff|aac|au|bmp|gsm|mov|mid|midi|mpg|mpeg|m4a|m4v|mp4|psd|qt|qtif|qif|qti|snd|tif|tiff|wav|3g2|3gp|wbmp)$/)) {
-	    return "quicktime";
-	  }
-	  if (reference.toLowerCase().match(/\.(ra|ram|rm|rpm|rv|smi|smil)$/)) {
-	    return "realplayer";
-	  }
-	  if (reference.toLowerCase().match(/\.(asf|avi|wma|wmv)$/)) {
-	    return "windowsmedia";
-	  }
-	  return "ajax";
-	};
-	
-	// TODO: compare with new methods to see what's missing...
-	/*
 	var deriveTopUpOptions = function(topUp, opts) {
 	  var toptions = jQuery.extend({}, {topUp: "#" + topUp.element.id(), preset: topUp.selector});
 	  
@@ -391,8 +244,8 @@ TopUp = (function() {
       if (c.match(/^tu_/)) {
         jQuery.each(c.replace(/^tu_/, "").split("_"), function(j, coption) {
           switch(coption) {
-            case "db": case "ql":
-      		    toptions["layout"] = {"db": "dashboard", "ql": "quicklook"}[coption]; break;
+            case "db": case "ql": case "fl":
+      		    toptions["layout"] = {"db": "dashboard", "ql": "quicklook", "fl": "flatlook"}[coption]; break;
       		  case "image": case "html": case "dom": case "iframe": case "ajax": case "script":
               toptions["type"] = coption; break;
             default:
@@ -432,6 +285,15 @@ TopUp = (function() {
 			result = jQuery.extend(result, opts);
 		}
 		
+		if (result.ondisplay && !jQuery.isFunction(result.ondisplay)) {
+		  var fdisplay     = result.ondisplay;
+		  result.ondisplay = function() {eval(fdisplay)};
+		}
+		if (result.onclose && !jQuery.isFunction(result.onclose)) {
+		  var fclose     = result.onclose;
+		  result.onclose = function() {eval(fclose)};
+		}
+		
 		if (store) {
   		result.reference = result.reference ? jQuery(result.reference) : reference;
       if (!result.type) {
@@ -445,107 +307,78 @@ TopUp = (function() {
 		
 		return result;
 	};
-	
-	*/
-	
-	/**
-	 * inject html for toptup
-	 * @access  private
-	 */
-	
-	var injectCode = function() {
-		var images_url = TopUp.host + TopUp.images_path;
-		
-		var css = '<div></div>';
-		var ie7fix = '<div></div>';
-		var ie6fix = '<div></div>';
-		var iefix = '<div></div>';
-		var html = '<div></div>';
-
-		if (!jQuery("head").length) {
-		  jQuery(document.body).before("<head></head>");
-		}
-		jQuery(css).prependTo("head");
-		
-		if (jQuery.ie7) {
-			jQuery(ie7fix).insertAfter("head > style:first");
-		}
-		if (jQuery.ie6) {
-			jQuery(ie6fix).insertAfter("head > style:first");
-		}
-		if (jQuery.ie) {
-			jQuery(iefix).insertAfter("head > style:first");
-		}
-	
-	  jQuery(html).appendTo("body");
+	var deriveType = function(reference) {
+	  if (reference.toLowerCase().match(/\.(gif|jpg|jpeg|png)(\?[0123456789]+)?$/)) {
+	    return "image";
+	  }
+	  if (reference.toLowerCase().match(/\.(swf)(\?[0123456789]+)?$/)) {
+	    return "flash";
+	  }
+	  if (reference.toLowerCase().match(/\.(flv)(\?[0123456789]+)?$/)) {
+	    return "flashvideo";
+	  }
+	  if (reference.toLowerCase().match(/\.(aif|aiff|aac|au|bmp|gsm|mov|mid|midi|mpg|mpeg|m4a|m4v|mp4|psd|qt|qtif|qif|qti|snd|tif|tiff|wav|3g2|3gp|wbmp)(\?[0123456789]+)?$/)) {
+	    return "quicktime";
+	  }
+	  if (reference.toLowerCase().match(/\.(ra|ram|rm|rpm|rv|smi|smil)(\?[0123456789]+)?$/)) {
+	    return "realplayer";
+	  }
+	  if (reference.toLowerCase().match(/\.(asf|avi|wma|wmv)(\?[0123456789]+)?$/)) {
+	    return "windowsmedia";
+	  }
+	  return "ajax";
 	};
-	
-	
-	/**
-	 * manipulate fade duration
-	 */
-	
-  var fadeDuration = function(duration) {
-    return jQuery.ie7 ? 1 : duration;
-  };
-  
-  
-  /**
-   * click event for a dom element
-   */
-   
-	var topUpClick = function(event) {
-		TopUp.displayTopUp(jQuery(event.target));
-		return false;
-	};
-	
-	
-	/**
-	 * listen to keypress for keyboard support
-	 */
-	
-	var documentKeyPress = function(event) {
-    if (jQuery("#top_up").is(":hidden") || jQuery(event.target).is(":input")) {
-		  return;
-		}
-		
-		switch(event.keyCode) {
-      case 27:
-		    TopUp.close(); break;
-		  case 37:
-        TopUp.previous(); break;
-		  case 39:
-        TopUp.next(); break;
-    }
-	};
-	
-	
   var movieContentDisplayed = function(opts) {
     return jQuery.inArray((opts || options).type, ["flash", "flashvideo", "quicktime", "realplayer", "windowsmedia"]) != -1;
   };
+		
+	var deriveGroup = function() {
+		if (options.group) {
+		
+			if (!(group && group.name == options.group)) {
+  			group = {name: options.group, items: jQuery([])};
+  			jQuery.each(jQuery(selector), function(i, e) {
+  	      if (!jQuery(e).is("[tu_group]")) {
+    			  jQuery(e).attr("tu_group", deriveOptions(null, deriveTopUpOptions(jQuery(e).bubbleDetect(selector))).group);
+    			}
 
+  				if (jQuery(e).attr("tu_group") == group.name) {
+  					group.items = group.items.add(e);
+  				}
+  			});
+			}
+			
+			var ids = jQuery.map(group.items, function(e, i) {
+      						return "#" + jQuery(e).id();
+    						});
+			index = options.topUp ? jQuery.inArray(options.topUp, ids) : -1;
+			
+		} else {
+			group = null;
+		}
+	};
 	var navigateInGroup = function(step) {
-	  if (group === null || group.length == 0) {
+	  if (group === null) {
 	    return;
 	  }
 	  
 		index = index + step;
 
 		if (index < 0) {
-			index = group.length - 1;
+			index = group.items.length - 1;
 		}
-		if (index > group.length - 1) {
+		if (index > group.items.length - 1) {
 			index = 0;
 		}
 
-		TopUp.displayTopUp(group[index]);
+		TopUp.displayTopUp(group.items[index]);
 	};
   
 	var prepare = function() {
 		jQuery("#top_up .te_frame").resizable("destroy");
 		
 		jQuery("#top_up .te_title").fadeOut(fadeDuration(200));
-		if (group.length < 2) {
+		if (!(group && group.items.length > 1)) {
 		  jQuery("#top_up .te_controls").fadeOut(fadeDuration(200));
 		}
 		
@@ -563,10 +396,27 @@ TopUp = (function() {
 		} else {
 			jQuery("#tu_overlay").hide();
 		}
-	};
 		
+		// added by Timo Besenreuther (2009-11-14) / modified by Paul Engel (2009-11-14)
+	  var altText = "";
+		if (options.topUp && (options.topUp != "") && ((parseInt(options.readAltText, 10) == 1) || (options.title && options.title.match("{alt}")))) {
+		  var topUp = jQuery(options.topUp);
+
+		  if (topUp.length) {
+    		var image = topUp.find("img");
+        if (image.length) {
+          altText = image.attr("alt") || "";
+        }
+        if (altText != "" && !(options.title && options.title.match("{alt}"))) {
+          options.title = "{alt}";
+        }
+      }
+    }
+    options.title = (options.title || "").replace("{alt}", altText).replace("{current}", group === null ? "" : (index + 1)).replace("{total}", group === null ? "" : group.items.length);
+	};	
 	var loadContent = function() {
 	  showLoader();
+	  
 		switch(options.type) {
 			case "image":
         options.content = new Image();
@@ -581,7 +431,19 @@ TopUp = (function() {
 			case "iframe":
 				options.content = jQuery('<iframe src="' + options.reference + '" frameborder="0" border="0"></iframe>'); break;
 			case "html": case "dom":
-				options.content = jQuery(options.reference); break;
+				var reference = jQuery(options.reference);
+				if (reference.context) {
+				  var marker = jQuery("<div></div>").attr({
+				                 id     :  reference.markerId(), 
+				                 "class": (reference.is(":hidden") ? "hidden" : ""), 
+				                 style  : "display: none"
+				               });
+				  options.content = jQuery("<div></div>").append(reference.before(marker).addClass("marked"));
+				  reference.show();
+				} else {
+				  options.content = jQuery("<div></div>").append(reference);
+				}
+				break;
 			case "ajax": case "script":
 			  options.content = null;
 			  jQuery.ajax({url: options.reference, 
@@ -657,11 +519,15 @@ TopUp = (function() {
         break;
     }
     
-    if (type == "flashvideo") {
-      params.flashvars = "file=" + src + "&autostart=true";
-      src              = TopUp.host + TopUp.players_path + "flvplayer.swf";
-      params.src       = src;
-      params.movie     = src;
+    switch(type) {
+      case "flash": case "flashvideo":
+        params.allowfullscreen = "true";
+      case "flashvideo":
+        params.flashvars = "file=" + src + "&autostart=true";
+        src              = TopUp.host + TopUp.players_path + "flvplayer.swf";
+        params.src       = src;
+        params.movie     = src;
+        break;
     }
     
     object_attrs.codebase = codebase;
@@ -700,13 +566,15 @@ TopUp = (function() {
                                                    codebase: "http://fpdownload.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=8,0,0,0",
                                                    style   : "display: none"});
                                         
-    object.append(jQuery("<param></param>").attr({name: "src", value: options.reference}));
+    object.append(jQuery("<param></param>").attr({name: "src"            , value: options.reference}));
+    object.append(jQuery("<param></param>").attr({name: "allowfullscreen", value: "true"}));
     
-    object.append(jQuery("<embed></embed>").attr({src        : options.reference,
-                                                  width      : options.width,
-                                                  height     : options.height,
-                                                  type       : "application/x-shockwave-flash",
-                                                  pluginspage: "http://get.adobe.com/flashplayer/"}));
+    object.append(jQuery("<embed></embed>").attr({src            : options.reference,
+                                                  width          : options.width,
+                                                  height         : options.height,
+                                                  allowfullscreen: "true",
+                                                  type           : "application/x-shockwave-flash",
+                                                  pluginspage    : "http://get.adobe.com/flashplayer/"}));
     
     options.content = jQuery("<div></div>").attr({width: options.width, height: options.height});
     options.content.append(object);
@@ -719,15 +587,17 @@ TopUp = (function() {
                                                    codebase: "http://fpdownload.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=8,0,0,0",
                                                    style   : "display: none"});
                                                    
-    object.append(jQuery("<param></param>").attr({name: "movie"    , value: TopUp.host + TopUp.players_path + "flvplayer.swf"}));
-    object.append(jQuery("<param></param>").attr({name: "flashvars", value: "file=" + options.reference + "&autostart=true"}));
+    object.append(jQuery("<param></param>").attr({name: "movie"          , value: TopUp.host + TopUp.players_path + "flvplayer.swf"}));
+    object.append(jQuery("<param></param>").attr({name: "flashvars"      , value: "file=" + options.reference + "&autostart=true"}));
+    object.append(jQuery("<param></param>").attr({name: "allowfullscreen", value: "true"}));
                                         
-    object.append(jQuery("<embed></embed>").attr({src        : TopUp.host + TopUp.players_path + "flvplayer.swf", 
-                                                  width      : options.width,
-                                                  height     : options.height,
-                                                  flashvars  : "file=" + options.reference + "&autostart=true",
-                                                  type       : "application/x-shockwave-flash",
-                                                  pluginspage: "http://get.adobe.com/flashplayer/"}));
+    object.append(jQuery("<embed></embed>").attr({src            : TopUp.host + TopUp.players_path + "flvplayer.swf", 
+                                                  width          : options.width,
+                                                  height         : options.height,
+                                                  flashvars      : "file=" + options.reference + "&autostart=true",
+                                                  allowfullscreen: "true",
+                                                  type           : "application/x-shockwave-flash",
+                                                  pluginspage    : "http://get.adobe.com/flashplayer/"}));
     
     options.content = jQuery("<div></div>").attr({width: options.width, height: options.height});
     options.content.append(object);
@@ -797,7 +667,7 @@ TopUp = (function() {
 	  }
 	  
 	  switch(options.type) {
-	    case "image": case "iframe":
+	    case "image": case "html": case "dom": case "iframe":
 			  options.resize = options.content;
 			  jQuery(".te_content").removeClass("te_scrollable");
 			  break;
@@ -816,7 +686,7 @@ TopUp = (function() {
 	  var origin = jQuery("#top_up");
 	  
 	  if (jQuery("#top_up").is(":hidden")) {
-	    origin = options.element;
+	    origin = jQuery(options.topUp);
   	  if (!origin.length) {
   	    origin = jQuery(document);
   	  } else if (origin.children().length > 0) {
@@ -861,13 +731,13 @@ TopUp = (function() {
         jQuery("#top_up").fadeIn(fadeDuration(300), afterDisplay); break;
 			case "switch": case "clip":
 			  jQuery("#top_up").show("clip", {direction: "vertical"}, 500, afterDisplay); break;
-			default:
-			  var origin = jQuery(options.element);
+			case "transform":
+			  var origin = jQuery(options.topUp);
 			  if (origin.children().length > 0) {
 			    origin = jQuery(origin.children()[0]);
 			  }
 			  var tuContent = jQuery("#top_up").find(".te_content");
-			  var dimensions = options.element ? 
+			  var dimensions = options.topUp ? 
                            jQuery.extend({width: origin.outerWidth(), height: origin.outerHeight()}, origin.offset()) : 
 			                     {top: parseInt(jQuery(window).height() / 2) - parseInt(tuContent.height() / 2) + jQuery(window).scrollTop(), 
 			                      left: parseInt(jQuery(window).width() / 2) - parseInt(tuContent.width() / 2) + jQuery(window).scrollLeft(), 
@@ -875,21 +745,42 @@ TopUp = (function() {
 			                      height: 10};
 
         transform("from", dimensions, afterDisplay);
+        break;
+      default:
+			  jQuery("#top_up").show();
+			  afterDisplay();
 		}
 	};
 	var replace = function(callback) {
-		var wrapper = jQuery("#top_up .te_content").lockDimensions().wrapInner("<div></div>").children();
+    var isScrollable = jQuery("#top_up .te_content").hasClass("te_scrollable");
+    if (isScrollable) {
+      jQuery("#top_up .te_content").removeClass("te_scrollable");
+    }
+    
+	  var focusedElement = jQuery("#top_up .te_content :focus");
+		var wrapper        = jQuery("#top_up .te_content").lockDimensions().wrapInner("<div></div>").children();
 		
 	  wrapper.fadeOut(fadeDuration(250), function() {
-      moveContent("temp_up");
-      wrapper.remove();
+      if (parseInt(options.storeCurrent, 10) == 1) {
+	      wrapper.addClass("te_stored_content").hide().find(".te_stored_content").before(wrapper);
+	    } else {
+        wrapper.children().appendTo("#temp_up .te_content").end().end().remove();
+      }
       
 	    if (callback) {
-			  callback.apply([], [jQuery("#top_up .te_content").id()]);
+	      var arg = jQuery("#temp_up .te_content");
+	      if (jQuery.inArray(options.type, ["html", "dom"]) != -1) {
+	        arg = arg.children().eq(0);
+	      }
+			  callback.apply(arg);
       } else {
         clearContent();
 	      setContent();
       }
+      if (isScrollable) {
+        jQuery("#top_up .te_content").addClass("te_scrollable");
+      }
+      
       setDimensions();
       
 	    jQuery("#top_up").centerWrap(jQuery("#temp_up"));
@@ -899,6 +790,7 @@ TopUp = (function() {
 	    jQuery("#top_up .te_content").animate(animation, 400, function() {
 	      moveContent("top_up");
         jQuery("#top_up").removeCenterWrap();
+	      focusedElement.focus();
 	      afterDisplay();
       });
     });
@@ -917,7 +809,15 @@ TopUp = (function() {
     }
 	};
   var clearContent = function() {
-    jQuery(".te_content").children().remove();
+    jQuery(".te_content .marked").each(function() {
+      var marker = jQuery("#" + jQuery(this).markerId());
+      if (marker.hasClass("hidden")) {
+        jQuery(this).hide();
+      }
+      marker.after(jQuery(this).removeClass("marked")).remove();
+    });
+    
+    jQuery(".te_content").children(":not(.te_stored_content)").remove();
   };
   
   var transform = function(direction, dimensions, callback) {
@@ -946,21 +846,23 @@ TopUp = (function() {
 	  }
 
 	  var animation = function() {
+	    var cb = function() {
+                 callback.apply();
+                 options.content.removeClass("te_overflow");
+               };
+	    
 	    var onReady = direction == "to" ?
                       function() {
-                        topUp.fadeOut(fadeDuration(250), callback)
-                             .removeClass("te_overflow");
-                      } :
-                      function() {
-                        callback.apply();
-                        topUp.removeClass("te_overflow");
-                      };
+                        topUp.fadeOut(fadeDuration(100), cb);
+                      } : cb;
 
 	    topUp          .animate({top: opts.to.top, left: opts.to.left}, opts.duration);
 	    options.content.animate({width:  opts.to.width, 
 	                             height: opts.to.height}, opts.duration, onReady);
 	  };
 	  
+    options.content.addClass("te_overflow");
+    
     if (direction == "from") {
       topUp          .css({top:   dimensions.top,   left:   dimensions.left});
       options.content.css({width: dimensions.width, height: dimensions.height});
@@ -968,9 +870,8 @@ TopUp = (function() {
       jQuery(".te_top_up,.te_content").unlockDimensions();
       
       topUp.hide()
-           .addClass("te_overflow")
            .removeClass("te_transparent")
-           .fadeIn(fadeDuration(300), animation);
+           .fadeIn(fadeDuration(150), animation);
     } else {
       animation.apply();
     }
@@ -993,7 +894,7 @@ TopUp = (function() {
 		jQuery("#top_up .te_title").html(options.title || "")
 		                           .fadeIn(duration);
 		
-		if (group && group.length > 1 && jQuery("#top_up .te_controls").is(":hidden")) {
+		if (group && group.items.length > 1 && jQuery("#top_up .te_controls").is(":hidden")) {
       if (jQuery.ie6) {
         jQuery("#top_up .te_controls").show();
       } else {
@@ -1028,7 +929,7 @@ TopUp = (function() {
 	  
 	  if (!dimensions) {
 	    options.resize.unlockDimensions();
-	    if (jQuery.inArray(options.type, ["image", "iframe"]) != -1) {
+	    if (jQuery.inArray(options.type, ["image", "html", "dom", "iframe"]) != -1) {
 	      jQuery("#temp_up .te_content").unlockDimensions();
 	    }
 	    
@@ -1087,6 +988,8 @@ TopUp = (function() {
   };
 	
 	var hide = function(callback) {
+	  jQuery(".te_content .te_stored_content").removeClass("te_stored_content");
+	  
 	  var duration = fadeDuration(250);
 	  var onReady = function() {
 	    animateHide(callback);
@@ -1124,13 +1027,13 @@ TopUp = (function() {
         jQuery("#top_up").fadeOut(fadeDuration(300), afterHide); break;
       case "switch": case "clip":
         jQuery("#top_up").hide("clip", {direction: "vertical"}, 400, afterHide); break;
-      default:
-			  var origin = jQuery(options.element);
+      case "transform":
+			  var origin = jQuery(options.topUp);
 			  if (origin.children().length > 0) {
 			    origin = jQuery(origin.children()[0]);
 			  }
 			  var tuContent = jQuery("#top_up").find(".te_content");
-			  var dimensions = options.element ? 
+			  var dimensions = options.topUp ? 
                            jQuery.extend({width: origin.outerWidth(), height: origin.outerHeight()}, origin.offset()) : 
 			                     {top: parseInt(jQuery(window).height() / 2) + jQuery(window).scrollTop(), 
 			                      left: parseInt(jQuery(window).width() / 2) + jQuery(window).scrollLeft(), 
@@ -1138,37 +1041,33 @@ TopUp = (function() {
 			                      height: 10};
 			                     
 			  transform("to", dimensions, afterHide);
+			  break;
+      default:
+        jQuery("#top_up").hide();
+        afterHide();
     }
 		
 		jQuery("#tu_overlay").hide();
 	};
 	
 	return {
+	  version: "{version}",
 		host: scriptHost,
 		images_path: "images/top_up/",
 		players_path: "players/",
 		data: data,
-		
-		
-		/**
-		 * initialize topup
-		 * @access  public
-		 */
-		 
 		init: function() {
-		  // check, whether init method has been called before
 			if (initialized) {
 				return false;
 			}
 			
 			try {
   			jQuery(document).ready(function() {
-  			  deriveGroups();
-  			  jQuery(document).bind("keypress", documentKeyPress);
           extendjQuery();
           injectCode();
+          bind();
         
-          jQuery("#top_up").draggable({only: ".te_title,.te_top *,.te_bottom *"});
+          jQuery("#top_up").draggableZ({only: ".te_title,.te_top *,.te_bottom *"});
           jQuery.each(on_ready, function(i, func) {
             func.apply();
           });
@@ -1182,7 +1081,6 @@ TopUp = (function() {
   			initialized = true;
       } catch(e) {}
 		},
-		
 		defaultPreset: function(set) {
 		  default_preset = jQuery.extend(default_preset, set);
 		},
@@ -1195,61 +1093,62 @@ TopUp = (function() {
 		rebind: function() {
 			bind();
 		},
-		
-		
-		/**
-		 * open a new topup
-		 * @param jquery  element that was clicked
-		 * @param object  toptions (extend stored toptions)
-		 * @access  public
-		 */
-		 
 		displayTopUp: function(element, opts) {
-		  // avoid displaying twice
-		  if (displaying) {
+		  if (!jQuery.isReady) {
+		    TopUp.ready(function() {
+		      TopUp.displayTopUp(element, opts);
+		    });
+		    return false;
+		  }
+
+		  var topUp = jQuery(element).bubbleDetect(selector);
+		  var toptions = deriveTopUpOptions(topUp, jQuery.extend(opts || {}, {trigger: "#" + jQuery(element).id()}));
+  		TopUp.display(topUp.element.attr("href"), toptions);
+	  },
+		display: function(reference, opts) {
+		  if (!jQuery.isReady) {
+		    TopUp.ready(function() {
+		      TopUp.display(reference, opts);
+		    });
+		    return false;
+		  }
+		  
+			if (displaying) {
 				return false;
 			}
-		  displaying = true;
-		  
-		  var el = jQuery(element);
-		  
-		  try {
-		    // search element with stored toptions
-  		  while (el.length > 0 && typeof(el.data("TopUp.toptions")) == "undefined") {
-  		    el = el.parent();
-  		  }
-  		  // element with stored toptions not found
-  		  if (el.length == 0) return false;
-  		  // retrieve toptions
-  		  options = el.data("TopUp.toptions");
-		  
-  		  // retrieve current group
-  		  if (options.group == null) group = [];
-  		  else group = groups[options.group];
-		  
-  		  // merge dom toptions with the ones passed to displayTopUp
-  		  options = jQuery.extend(opts || {}, {trigger: el}, options);
-		    
-		    prepare();
+
+			try {
+  			displaying = true;
+  			data = {};
+  			deriveOptions(reference, opts, true);
+        deriveGroup();
+      
+  			prepare();
   			loadContent();
-		    
-    	} catch(e) {
+			} catch(e) {
 			  displaying = false;
         alert("Sorry, but the following error occured:\n\n" + e);
 			}
-	  },
-	  
-	  
+		},
 		update: function(func) {
       if (jQuery("#top_up").is(":hidden")) {
         return;
       }
       
-		  options.type = "html";
-      options.resize = jQuery("#temp_up .te_content");
-		  jQuery(".te_content").addClass("te_scrollable");
-		  
 		  replace(func || function() {});
+		},
+		restore: function(storeCurrent, callback) {
+		  options.storeCurrent = storeCurrent ? 1 : 0;
+		  options.ondisplay    = callback;
+
+		  TopUp.update(function() {
+		    clearContent();
+		    var stored_content = this.children(":not(.te_stored_content):first-child").prev();
+		    if (!stored_content.length) {
+		      stored_content = this.children(".te_stored_content:last-child");
+		    }
+        stored_content.children().insertBefore(stored_content).end().end().remove();
+		  });
 		},
 		previous: function() {
 			navigateInGroup(-1);
@@ -1269,11 +1168,6 @@ TopUp = (function() {
 		}
 	};
 }());
-
-
-/**
- * load missing libraries
- */
 
 (function () {
   var missing_libs = [];
