@@ -822,7 +822,6 @@ TopUp = (function() {
     if (isScrollable) {
       jQuery("#top_up .te_content").removeClass("te_scrollable");
     }
-	  var focusedElement = jQuery("#top_up .te_content :focus");
 		var wrapper        = jQuery("#top_up .te_content").lockDimensions().wrapInner("<div></div>").children();
 		
 	  wrapper.fadeOut(fadeDuration(250), function() {
@@ -860,7 +859,6 @@ TopUp = (function() {
 	    jQuery("#top_up .te_content").animate(animation, 400, function() {
 	      moveContent("top_up");
         jQuery("#top_up").removeCenterWrap(newTopUpWidth);
-	      focusedElement.focus();
 	      afterDisplay();
       });
     });
