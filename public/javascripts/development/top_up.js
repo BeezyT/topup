@@ -1280,6 +1280,7 @@ TopUp = (function() {
   		    no_dom_elements_mode = {toptions: args[1]};
   		    group = {name: 'no_dom_elements_mode', items: jQuery(args[0])};
   		    index = args[2] || 0;
+  		    TopUp.init();
   		    deriveOptionsNoDomElementsMode.apply();
   		    
   		  } else if (no_dom_elements_mode) {
