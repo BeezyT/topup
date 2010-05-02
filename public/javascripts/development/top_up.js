@@ -45,10 +45,11 @@ var scriptParams = (function deriveScriptParams() {
 
 TopUp = (function() {
 	var initialized = false, selector = null, on_ready = [], displaying = false, options = null, group = null, index = null, data = null;
-	var fast_mode = false;
+	var fast_mode = false, no_dom_elements_mode = false;
 	var default_preset = {
 		layout: "dashboard",
     effect: "transform",
+    closeEffect: false,
 		resizable: 1
 	}, presets = {};
 	
@@ -348,6 +349,21 @@ TopUp = (function() {
 		
 		return result;
 	};
+	var deriveOptionsNoDomElementsMode = function() {
+    var theToptions = {};
+    if (no_dom_elements_mode.toptions) {
+      jQuery.extend(theToptions, no_dom_elements_mode.toptions);
+    }
+    var reference; 
+    if (typeof(group.items[index]) == 'object') {
+      reference = group.items[index][0];
+      jQuery.extend(theToptions, group.items[index][1]);
+    } else {
+      reference = group.items[index];
+    }
+    deriveOptions(reference, theToptions, true);
+    options.reference = reference;
+  };
 	var deriveType = function(reference) {
 	  if (reference.toLowerCase().match(/\.(gif|jpg|jpeg|png)(\?[0123456789]+)?$/)) {
 	    return "image";
@@ -393,8 +409,7 @@ TopUp = (function() {
       						return "#" + jQuery(e).id();
     						});
 			index = options.topUp ? jQuery.inArray(options.topUp, ids) : -1;
-			
-		} else {
+		} else if (!no_dom_elements_mode) {
 			group = null;
 		}
 	};
@@ -1066,6 +1081,8 @@ TopUp = (function() {
 	var hide = function(callback) {
 	  jQuery(".te_content .te_stored_content").removeClass("te_stored_content");
 	  
+	  no_dom_elements_mode = false;
+	  
 	  var duration = fadeDuration(250);
 	  var onReady = function() {
 	    animateHide(callback);
@@ -1098,7 +1115,8 @@ TopUp = (function() {
       moveContent("temp_up");
 	  };
 	  
-    switch(options.effect) {
+    var effect = options.closeEffect || options.effect;
+    switch(effect) {
       case "appear": case "fade":
         jQuery("#top_up").fadeOut(fadeDuration(300), afterHide); break;
       case "switch": case "clip":
@@ -1217,14 +1235,35 @@ TopUp = (function() {
 		    });
 		    return false;
 		  }
-		  var topUp = jQuery(element).bubbleDetect(selector);
-		  var toptions = deriveTopUpOptions(topUp, jQuery.extend(opts || {}, {trigger: "#" + jQuery(element).id()}));
-  		TopUp.display(topUp.element.attr("href"), toptions);
+		  
+		  if (no_dom_elements_mode) {
+		    TopUp.display(element);
+		  } else {
+		    var topUp = jQuery(element).bubbleDetect(selector);
+		    var toptions = deriveTopUpOptions(topUp, jQuery.extend(opts || {}, {trigger: "#" + jQuery(element).id()}));
+		    TopUp.display(topUp.element.attr("href"), toptions);
+		  }
 	  },
-		display: function(reference, opts) {
+	  
+	  /**
+	   * there are different ways for using this method
+	   * example #1
+	   *    TopUp.display('http://www.foo.bar/img2.png', my_toptions)
+	   * example #2 (no_dom_elements_mode)
+	   *    TopUp.display([
+     *      ['http://www.foo.bar/img1.png', {layout: 'dashboard'}],
+     *      'http://www.foo.bar/img2.png',
+     *      'http://www.foo.bar/img3.png',
+     *      'http://www.foo.bar/img4.png',
+     *      'http://www.foo.bar/img5.png'
+     *    ], {title: 'My Group - Image {current}', layout: 'flatlook', shaded: 1}, 2);
+     */
+		display: function() {
+		  var args = arguments;
+		  
 		  if (!jQuery.isReady) {
 		    TopUp.ready(function() {
-		      TopUp.display(reference, opts);
+		      TopUp.display.apply(this, arguments);
 		    });
 		    return false;
 		  }
@@ -1234,10 +1273,26 @@ TopUp = (function() {
 			}
       
 			try {
-  			displaying = true;
-  			
+			  displaying = true;
   			data = {};
-  			deriveOptions(reference, opts, true);
+			  
+			  // determine which way the method was called and act accordingly
+			  if (typeof(args[0]) == 'object' && !no_dom_elements_mode) {
+  		    // usage like example #2 (no_dom_elements_mode)
+  		    no_dom_elements_mode = {toptions: args[1]};
+  		    group = {name: 'no_dom_elements_mode', items: jQuery(args[0])};
+  		    index = args[2] || 0;
+  		    deriveOptionsNoDomElementsMode.apply();
+  		    
+  		  } else if (no_dom_elements_mode) {
+  		    // navigating in no_dom_elements_mode group
+  		    deriveOptionsNoDomElementsMode.apply();
+  		    
+  		  } else {
+  		    // usage like example #1
+  		    no_dom_elements_mode = false;
+          deriveOptions(args[0], args[1], true);
+  		  }
   			
   			showLoader();
   			

@@ -65,9 +65,9 @@
   </ul>
   <ul>
     <li>
-      <%= link_to image_tag("thumbnails/5.jpg"), "/images/photos/5.jpg", :class => "shaded", :toptions => "effect = clip, layout = quicklook" %>
+      <%= link_to image_tag("thumbnails/5.jpg"), "/images/photos/5.jpg", :class => "shaded", :toptions => "effect = clip, closeEffect = fade, layout = quicklook" %>
       <small>
-        shaded: 1, effect: clip, layout: quicklook
+        shaded: 1, effect: clip, closeEffect: fade, layout: quicklook
       </small>
     </li>
     <li>  
@@ -113,6 +113,31 @@
       <small>
         width: 767, height: 591, title: Windows Media Player 12, layout: quicklook
       </small>
+    </li>
+    <li>
+      <a href="#" id="groupWithoutDom" onclick="displayGroupWithoutDomElements();return false;" style="font-size: 13px">
+        <%= image_tag("thumbnails/2.jpg") %>
+        <small>
+          Display a TopUp group without DOM elements.
+        </small>
+        <script type="text/javascript">
+          function displayGroupWithoutDomElements() {
+            TopUp.display([
+              ['/images/photos/1.jpg', {layout: 'dashboard'}],
+              '/images/photos/2.jpg',
+              '/images/photos/3.jpg'
+            ], {
+              title: 'Group without DOM elements - Image {current}',
+              layout: 'quicklook',
+              shaded: 1,
+              overlayClose: 1,
+              effect: 'transform',
+              closeEffect: 'fade',
+              topUp: '#groupWithoutDom'
+            }, 1);
+          }
+        </script>
+      </a>
     </li>
   </ul>
   <div class="clear"></div>
